@@ -1,0 +1,81 @@
+public int alpha_beta(int depth, Board board, int alpha, int beta) {
+ 
+if (depth == level || board.isGameOver() != 0) {
+ 
+Chess[] sorted = board.getSorted();
+ 
+Chess move = board.getData()[sorted[0].x][sorted[0].y];
+ 
+return move.getSum();// 局面估分
+ 
+}
+ 
+Board temp = new Board(board);
+ 
+Chess[] sorted = temp.getSorted();
+ 
+int score;
+ 
+for (int i = 0; i < node; i++) {
+ 
+int x = sorted[i].x;
+ 
+int y = sorted[i].y;
+ 
+if (!temp.putChess(x, y))
+ 
+continue;
+ 
+if (sorted[i].getOffense() >= Board.Level.ALIVE_4.score) {
+ 
+score = INFINITY + 1;
+ 
+} else if (sorted[i].getDefence() >= Board.Level.ALIVE_4.score) {
+ 
+score = INFINITY;
+ 
+} else {
+ 
+score = alpha_beta(depth + 1, temp, alpha, beta);
+ 
+}
+ 
+temp = new Board(board);
+ 
+if (depth % 2 == 0) {// MAX
+ 
+if (score > alpha) {
+ 
+alpha = score;
+ 
+if (depth == 0) {
+ 
+movex = x;
+ 
+movey = y;
+ 
+}
+ 
+}
+ 
+if (alpha >= beta) 
+ 
+return alpha;
+ 
+} else {// MIN
+ 
+if (score < beta) 
+ 
+beta = score;
+ 
+if (alpha >= beta) 
+ 
+return beta;
+ 
+}
+ 
+}
+ 
+return depth%2==0?alpha:beta;
+ 
+}

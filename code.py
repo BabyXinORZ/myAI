@@ -59,6 +59,8 @@ class AI(object):
         # You need add your decision into your candidate_list. System will get the end of your candidate_list as your decision .
         self.candidate_list = []
         # The input is current chessboard.
+        self.level = 5
+        self.gameOver = False
 
     def go(self, chessboard):
         # Clear candidate_list
@@ -86,13 +88,13 @@ class AI(object):
     def findNext(self, chessboard):
         idx = self.gerNoneboard(chessboard)
         # deal with the firt one
-        if(len(idx) == 15*15):
-            return [7, 7]
+        if(len(idx) == self.chessboard_size**2):
+            return [int(self.chessboard_size/2), int(self.chessboard_size/2)]
         # print(idx)
         # pos_idx = random.randint(0, len(idx)-1)
         score = -1
         tmpScore = 0
-        next = [7, 7]
+        next = [int(self.chessboard_size/2), int(self.chessboard_size/2)]
         for i in idx:
             tmpScore = self.getPosScore(chessboard, i, self.color)
             tmpScore += self.getPosScore(chessboard, i, self.enemy)*0.8
@@ -341,8 +343,58 @@ class AI(object):
         return idx
 
     def putChess(self, chessboard, pos, color):
-        chessboard[pos[0], pos[1]] = color
-        return chessboard
+        newboard = chessboard.copy()
+        newboard[pos[0], pos[1]] = color
+        return newboard
 
-    def alpha_beta(self, chessboard, alpha, beta):
+    def alpha_beta(self, depth, chessboard, alpha, beta, pos):
+        if depth % 2 == 0:
+            color = self.color
+        else:
+            color = self.enemy
+
+        if self.level == depth or self.gameOver:
+            value = self.getPosScore(chessboard, pos, color)
+            return value
         pass
+        tempboard = self.putChess(chessboard, pos, color)
+        space = self.gerNoneboard(tempboard)
+        for i in space:
+            score = self.alpha_beta(depth+1, tempboard, alpha, beta, i)
+            if(depth % 2 == 0):
+                if score > alpha:
+                    alpha = score
+                if alpha >= beta:
+                    return alpha
+            else:
+                if score < beta:
+                    beta = score
+                    if alpha >= beta:
+                        return beta
+
+        if depth % 2 == 0:
+            return alpha
+        else:
+            return beta
+
+
+def find(parameter_list):
+    pass
+
+
+if __name__ == "__main__":
+    a = AI(10, -1, 30)
+    chessboard = np.zeros((10, 10), dtype=np.int)
+    # chessboard[2, 2:4] = 1
+    # chessboard[4, 1:3] = 1
+    # chessboard[1, 10:12] = -1
+    # chessboard[2, 10] = -1
+    # chessboard[4, 12] = -1
+    # # a.printBoard(chessboard)
+    # a.go(chessboard)
+    a.level = 4
+    # a.printBoard(chessboard)
+    chessboard[5, 3:7] = COLOR_BLACK
+    chessboard[4, 3:7] = COLOR_BLACK
+    val = a.alpha_beta(0, chessboard, -1000000, 1000000, [5, 3])
+    print(val)
