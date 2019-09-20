@@ -84,8 +84,7 @@ class AI(object):
         self.candidate_list.append(new_pos)
 
     def findNext(self, chessboard):
-        idx = np.where(chessboard == COLOR_NONE)
-        idx = list(zip(idx[0], idx[1]))
+        idx = self.gerNoneboard(chessboard)
         # deal with the firt one
         if(len(idx) == 15*15):
             return [7, 7]
@@ -335,3 +334,15 @@ class AI(object):
                     print(0, end="")
                 print(" | ", end="")
             print()
+
+    def gerNoneboard(self, chessboard):
+        idx = np.where(chessboard == COLOR_NONE)
+        idx = list(zip(idx[0], idx[1]))
+        return idx
+
+    def putChess(self, chessboard, pos, color):
+        chessboard[pos[0], pos[1]] = color
+        return chessboard
+
+    def alpha_beta(self, chessboard, alpha, beta):
+        pass
