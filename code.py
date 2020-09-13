@@ -36,7 +36,7 @@ SCORE_TABLE = {
     DEFAULT: 0,
     ATWO: 30,
     ATHREE: 4500,  # 隔子为三
-    AFOUR: 40000
+    AFOUR: 200000
 }
 
 COLOR_BLACK = -1
@@ -62,18 +62,22 @@ class AI(object):
         # You need add your decision into your candidate_list. System will get the end of your candidate_list as your decision .
         self.candidate_list = []
         # The input is current chessboard.
-        self.level = 2
+        self.level = 1
         self.gameOver = False
         self.currentSCORE = list()
+        self.currentSpace = list()
+        self.currentSpaceNum = list()
         self.SCORE = 0
-        self.ORDER = list()
         self.valueTable = np.zeros(
             (self.chessboard_size, self.chessboard_size), dtype=np.int)
         self.initValueTable()
+        self.validArea = np.zeros(
+            (self.chessboard_size, self.chessboard_size), dtype=np.int)
 
     def go(self, chessboard):
         # Clear candidate_list
         # print(chessboard)
+        self.initValidSpace(chessboard)
         print("before")
         self.printBoard(chessboard)
         self.candidate_list.clear()
@@ -131,7 +135,7 @@ class AI(object):
 
     def findNext2(self, chessboard):
         idx = self.gerNoneboard(chessboard)
-        
+
         if(len(idx) == 0):
             return [int(self.chessboard_size/2), int(self.chessboard_size/2)]
         print("idx长度")
@@ -141,20 +145,20 @@ class AI(object):
         next = idx[0]
         alpha = -INFINITY
         beta = INFINITY
-        
+
         tmpScore = self.alpha_beta(0, chessboard, -INFINITY, INFINITY, next)
         alpha = tmpScore
 
-        count = 0
+        # count = 0
         for i in idx:
             self.gameOver = False
-            count+=1
-            print(count)
+            # count+=1
+            # print(count)
             tmpScore = self.alpha_beta(0, chessboard, alpha, beta, i)
             if tmpScore > alpha:
                 alpha = tmpScore
                 next = i
-                
+
         print("Next")
         print(next)
         return next
@@ -261,7 +265,7 @@ class AI(object):
 
         # 五连
         if right-left > 3:
-            self.gameOver = True
+            # self.gameOver = True
             return FIVE
         leftNone = False
         rightNone = False
@@ -394,20 +398,81 @@ class AI(object):
                 print(" | ", end="")
             print()
 
-    def gerNoneboard(self, chessboard):
-        idx = np.where(chessboard == COLOR_NONE)
-        idx = list(zip(idx[0], idx[1]))
-        
-        if len(idx)==self.chessboard_size**2:
-            return list()
+    # TODO: 解决获取过长问题
+    # def gerNoneboard(self, chessboard):
+    #     idx = np.where(chessboard == COLOR_NONE)
+    #     idx = list(zip(idx[0], idx[1]))
 
-        if  len(idx)>self.chessboard_size**2//2:
-            idx2 = list()
-            for i in idx:
-                if self.getPosScore(chessboard,i,COLOR_WHITE) < -7 or self.getPosScore(chessboard,i,COLOR_BLACK) > 7:
-                        idx2.append(i)
-            return idx2
+    #     if len(idx)==self.chessboard_size**2:
+    #         return list()
+
+    #     if  len(idx)>self.chessboard_size**2//2:
+    #         idx2 = list()
+    #         for i in idx:
+    #             if self.getPosScore(chessboard,i,COLOR_WHITE) < -7 or self.getPosScore(chessboard,i,COLOR_BLACK) > 7:
+    #                     idx2.append(i)
+    #         return idx2
+    #     return idx
+
+    def gerNoneboard(self, chessboard):
+        idx = list()
+        for pos in self.currentSpace:
+            if chessboard[pos[0], pos[1]] == COLOR_NONE:
+                idx.append([pos[0], pos[1]])
         return idx
+
+    def initValidSpace(self, chessboard):
+        area = self.validArea
+        for i in range(self.chessboard_size):
+            for j in range(self.chessboard_size):
+                if chessboard[i][j] == COLOR_NONE:
+                    if self.isValid(chessboard, [i, j]):
+                        area[i][j] = 1
+                        self.currentSpace.append([i, j])
+                else:
+                    area[i][j] = 1
+
+    def isValid(self, chessboard, pos):
+        row0 = pos[0]-2
+        col0 = pos[1]-2
+        valid = False
+        for i in range(row0, row0+5):
+            if i < 0 or i >= self.chessboard_size:
+                continue
+            for j in range(col0, col0+5):
+                if j < 0 or j >= self.chessboard_size:
+                    continue
+                if self.validArea[i, j] != COLOR_NONE:
+                    if self.getPosScore(chessboard, [i, j], COLOR_BLACK) > 7 or self.getPosScore(chessboard, [i, j], COLOR_BLACK) < -7:
+                        valid = True
+        return valid
+
+    def appendValidSpace(self, pos, chessboard):
+        row0 = pos[0]-2
+        col0 = pos[1]-2
+        count = 0
+        for i in range(row0, row0+5):
+            if i < 0 or i >= self.chessboard_size:
+                continue
+            for j in range(col0, col0+5):
+                if j < 0 or j >= self.chessboard_size:
+                    continue
+                if self.validArea[i, j] == 1:
+                    continue
+                self.validArea[i][j] = 1
+                if i == pos[0] and i == pos[1]:
+                    continue
+                if self.getPosScore(chessboard, [i, j], COLOR_BLACK) > 7 or self.getPosScore(chessboard, [i, j], COLOR_BLACK) < -7:
+                    count += 1
+                    self.currentSpace.append([i, j])
+
+        self.currentSpaceNum.append(count)
+
+    def popValidSpace(self):
+        num = self.currentSpaceNum.pop()
+        for i in range(num):
+            pos = self.currentSpace.pop()
+            self.validArea[pos[0], pos[1]] = 0
 
     def alpha_beta(self, depth, chessboard, alpha, beta, pos):
         if depth % 2 == 0:
@@ -418,13 +483,13 @@ class AI(object):
         self.putChess(chessboard, pos, color)
         if self.level == depth or self.gameOver:
             value = self.SCORE
-            
+
             # if chessboard[5,5]!=0:
             #     self.printBoard(chessboard)
             #     print("get!")
 
             self.withdraw(chessboard, pos)
-            
+
             return value
 
         space = self.gerNoneboard(chessboard)
@@ -454,31 +519,42 @@ class AI(object):
         chessboard[pos[0], pos[1]] = color
         score = self.getPosScore(chessboard, pos, color)
         self.currentSCORE.append(score)
-        # self.printBoard(chessboard)
+
+        # if pos[0]==3 and pos[1]==11 and chessboard[3,11]==COLOR_BLACK:
+        #     self.printBoard(chessboard)
+        #     print("important!")
+        # if pos[0]==5 and pos[1]==5 and chessboard[5,5]==COLOR_WHITE:
+        #     self.printBoard(chessboard)
+        #     print("important!")
+        # if pos[0]==5 and pos[1]==5 and chessboard[5,5]==COLOR_WHITE:
+        #     print("important!")
         self.SCORE += score
+        self.appendValidSpace(pos, chessboard)
         return chessboard
 
     def withdraw(self, chessboard, pos):
         # self.printBoard(chessboard)
         self.SCORE -= self.currentSCORE.pop()
         chessboard[pos[0], pos[1]] = COLOR_NONE
+        self.popValidSpace()
         return
 
 
 if __name__ == "__main__":
     a = AI(15, -1, 30)
     chessboard = np.zeros((a.chessboard_size, a.chessboard_size), dtype=np.int)
-    chessboard[2, 2] = 1
-    chessboard[3, 3] = 1
-    chessboard[4, 4] = 1
-    chessboard[5, 6] = 1
-    chessboard[5, 8] = 1
-    chessboard[1:3, 11] = -1
-    chessboard[3, 9:11] = -1
-    chessboard[6, 13] = -1
+    chessboard[2, 2:4] = 1
+    chessboard[4, 1:3] = 1
+    chessboard[1, 10:12] = -1
+    chessboard[2, 10] = -1
+    chessboard[4, 12] = -1
 
-
-    print(a.alpha_beta(0, chessboard, -INFINITY, INFINITY, [5, 5]))
+    a.initValidSpace(chessboard)
+    b = len(a.currentSpace)
+    c = len(a.currentSpaceNum)
+    print(a.alpha_beta(0, chessboard, -INFINITY, INFINITY, [1, 9]))
+    b1 = len(a.currentSpace)
+    c1 = len(a.currentSpaceNum)
     a.gameOver = False
     print(a.alpha_beta(0, chessboard, -INFINITY, INFINITY, [3, 11]))
 
@@ -486,4 +562,3 @@ if __name__ == "__main__":
     print(a.alpha_beta(0, chessboard, -INFINITY, INFINITY, [0, 0]))
 
     # print(a.getPosScore(chessboard, [5,5], COLOR_WHITE))
-    
